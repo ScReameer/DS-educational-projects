@@ -131,3 +131,6 @@ dmypy.json
 # Datasets
 *.csv
 *.zip
+data/
+models/
+unused.ipynb
