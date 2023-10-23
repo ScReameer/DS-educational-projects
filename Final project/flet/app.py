@@ -55,7 +55,6 @@ def main(page: ft.Page):
             })
             prediction = xgb_pipeline.predict(request_df)[0]
             output.value = f'Предсказанная цена: {prediction:.2f} $'
-            # page.add(ft.Text(f'Предсказанная цена: {prediction:.2f} $'))
             page.update()
         
     txt_carat = ft.TextField(
