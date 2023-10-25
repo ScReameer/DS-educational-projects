@@ -1,47 +1,53 @@
 import flet as ft
 import pickle
 import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
 
-with open('../models/xgb_pipeline.pkl', 'rb') as xgb:
+with open('./models/xgb_pipeline.pkl', 'rb') as xgb:
     xgb_pipeline = pickle.load(xgb)
     xgb_pipeline.set_params(xgbregressor__verbosity=0, xgbregressor__device='cpu')
 
 def main(page: ft.Page):
     
-    page.window_height = 550
-    page.window_width = 400
+    page.window_height = 700
+    page.window_width = 500
     
     def btn_click(e):
         
-        def is_numeric(str:str):
+        def is_positive_number(str:str):
             try:
-                float(str)
-                return True
+                return float(str) > 0
             except:
                 return False
         
-        numeric_columns = [txt_carat, txt_depth, txt_table]
-        categorical_columns = [txt_cut, txt_color, txt_clarity]
-        validation = False
-        for numeric_col, cat_col in zip(numeric_columns, categorical_columns):
+        def validation():
+            
+            numeric_columns = [txt_carat, txt_depth, txt_table]
+            categorical_columns = [txt_cut, txt_color, txt_clarity]
+            for numeric_col, cat_col in zip(numeric_columns, categorical_columns):
 
-            if numeric_col.value == '' or not is_numeric(numeric_col.value):
-                numeric_col.error_text = 'Нужно ввести число'
-                page.update()
-                validation = False
-            else:
-                numeric_col.error_text = ''
-                validation = True
+                if numeric_col.value and is_positive_number(numeric_col.value):
+                    numeric_col.error_text = ''
+                    page.update()
+                    check_numeric = True
+                else:
+                    numeric_col.error_text = 'Нужно ввести положительное число'
+                    page.update()
+                    check_numeric = False 
                 
-            if cat_col.value == '' or is_numeric(cat_col.value):
-                cat_col.error_text = 'Нужно ввести строку'
-                page.update()
-                validation = False
-            else:
-                cat_col.error_text = ''
-                validation = True 
+                if cat_col.value == None:
+                    cat_col.error_text = 'Нужно выбрать категорию'
+                    page.update()
+                    check_categorical = False
+                else:
+                    cat_col.error_text = ''
+                    page.update()
+                    check_categorical = True 
                 
-        if validation:
+            return check_numeric and check_categorical
+                
+        if validation():
             request_df = pd.DataFrame({
                 'carat': [float(txt_carat.value)], 
                 'cut': [txt_cut.value], 
@@ -67,6 +73,7 @@ def main(page: ft.Page):
         width=400,
         label='Качество огранки алмаза',
         hint_text='Выбрать качество огранки',
+        border='underline',
         focused_border_color=ft.colors.PINK_400,
         border_color=ft.colors.PINK_400,
         options=[
@@ -81,6 +88,7 @@ def main(page: ft.Page):
         width=400,
         label='Цвет алмаза',
         hint_text='Выбрать цвет',
+        border='underline',
         border_color=ft.colors.PINK_400,
         focused_border_color=ft.colors.PINK_400,
         options=[
@@ -97,6 +105,7 @@ def main(page: ft.Page):
         width=400,
         label='Уровень чистоты алмаза',
         hint_text='Выбрать уровень чистоты',
+        border='underline',
         border_color=ft.colors.PINK_400,
         focused_border_color=ft.colors.PINK_400,
         options=[
@@ -114,17 +123,17 @@ def main(page: ft.Page):
         label='Общий процент глубины алмаза', 
         width=400,
         border='underline',
-        border_color=ft.colors.PINK_400        
+        border_color=ft.colors.PINK_400
     )
     txt_table = ft.TextField(
-        label='Ширина вершины алмаза',
+        label='Ширина верхней грани алмаза',
         width=400,
         border='underline',
         border_color=ft.colors.PINK_400
     )
     
     output = ft.Text(
-        value='NaN',
+        value='',
         size=20
     )
     
