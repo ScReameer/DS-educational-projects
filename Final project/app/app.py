@@ -4,9 +4,8 @@ import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
 
-with open('./models/xgb_pipeline.pkl', 'rb') as xgb:
-    xgb_pipeline = pickle.load(xgb)
-    xgb_pipeline.set_params(xgbregressor__verbosity=0, xgbregressor__device='cpu')
+with open(r'models\nn_regressor.pkl', 'rb') as nn_file:
+    neural_network_regressor = pickle.load(nn_file)
 
 def main(page: ft.Page):
     
@@ -59,7 +58,7 @@ def main(page: ft.Page):
                 'y': [0], 
                 'z': [0]
             })
-            prediction = xgb_pipeline.predict(request_df)[0]
+            prediction = neural_network_regressor.predict(request_df)[0]
             output.value = f'Предсказанная цена: {prediction:.2f} $'
             page.update()
         
