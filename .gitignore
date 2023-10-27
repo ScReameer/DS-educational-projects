@@ -132,5 +132,4 @@ dmypy.json
 *.csv
 *.zip
 data/
-models/
 unused.ipynb
