@@ -9,6 +9,7 @@ with open(r'models\nn_regressor.pkl', 'rb') as nn_file:
 
 def main(page: ft.Page):
     
+    page.title = 'Предсказание цены алмазов на основе признаков'
     page.window_height = 700
     page.window_width = 500
     
@@ -136,22 +137,91 @@ def main(page: ft.Page):
         size=20
     )
     
-    page.title = 'Предсказание цены алмазов на основе признаков'
-    page.add(txt_carat)
-    page.add(txt_depth)
-    page.add(txt_table)
-    page.add(txt_cut)
-    page.add(txt_color)
-    page.add(txt_clarity)
+    submit_button = ft.ElevatedButton(
+        "Submit",
+        on_click=btn_click,
+        bgcolor=ft.colors.PINK_400,
+        color=ft.colors.BLACK
+    )
+    
     page.add(
-        ft.ElevatedButton(
-            "Submit",
-            on_click=btn_click,
-            bgcolor=ft.colors.PINK_400,
-            color=ft.colors.BLACK
+        ft.Column(
+            controls=[
+                txt_carat,
+                txt_depth,
+                txt_table,
+                txt_cut, 
+                txt_color, 
+                txt_clarity,
+                submit_button,
+                output
+            ]
         )
     )
-    page.add(output)
+    
+    
+    # Pick file dialog
+    def pick_files_result(e: ft.FilePickerResultEvent):
+        selected_files.value = (
+            ", ".join(map(lambda f: f.name, e.files)) if e.files else "Отменено"
+        )
+        selected_files.update()
+        loaded_df.value = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price')
+
+    pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
+    selected_files = ft.Text()
+    loaded_df = ft.Text()
+    
+    # Save file dialog
+    def save_file_result(e: ft.FilePickerResultEvent):
+        save_file_path.value = e.path if e.path else "Отменено"
+        save_file_path.update()
+        try:
+            predictions.value = neural_network_regressor.predict(loaded_df.value)
+            pd.Series(predictions.value).to_csv(save_file_path.value)
+            success_info.value = f'Предсказания успешно сохранены'
+        except:
+            success_info.value = f'Неверный формат данных'
+        else:
+            page.update()
+            
+
+    save_file_dialog = ft.FilePicker(on_result=save_file_result)
+    save_file_path = ft.Text()
+    predictions = ft.Text()
+    success_info = ft.Text()
+
+    # hide all dialogs in overlay
+    page.overlay.extend([pick_files_dialog, save_file_dialog])
+
+    page.add(
+        ft.Row(
+            [
+                ft.ElevatedButton(
+                    "Загрузить файл",
+                    icon=ft.icons.UPLOAD_FILE,
+                    on_click=lambda _: pick_files_dialog.pick_files(),
+                ),
+                selected_files,
+            ]
+        ),
+        ft.Row(
+            [
+                ft.ElevatedButton(
+                    "Сохранить предсказания",
+                    icon=ft.icons.SAVE,
+                    on_click=lambda _: save_file_dialog.save_file(file_name='result.csv'),
+                    disabled=page.web,
+                ),
+                save_file_path,
+            ]
+        ),
+        ft.Column(
+            [
+                success_info
+            ]
+        )
+    )
     
 if __name__ == '__main__':
     ft.app(target=main)
