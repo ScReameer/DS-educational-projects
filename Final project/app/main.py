@@ -10,14 +10,15 @@ with open(r'models\nn_regressor.pkl', 'rb') as nn_file:
 def main(page: ft.Page):
     
     page.title = 'Предсказание цены алмазов на основе признаков'
-    page.window_height = 900
-    page.window_width = 700
+    page.window_height = 1000
+    page.window_width = 600
+    page.theme_mode = ft.ThemeMode.DARK
     
     def btn_click(e):
         
-        def is_positive_number(str:str):
+        def is_positive_number(string:str):
             try:
-                return float(str) > 0
+                return float(string) > 0
             except:
                 return False
         
@@ -159,13 +160,12 @@ def main(page: ft.Page):
         )
     )
     
-    # Создадим класс, в атрибуте которого будем хранить датафреймы
+    # Создадим класс, в атрибуте которого будем хранить изменяемые данные 
+    # (для доступа к переменным внутри функций без объявления глобальных переменных)
     class MutableObject():
         def __init__(self) -> None:
             self.data = None
             
-    
-    
     # Pick file dialog
     def pick_files_result(e: ft.FilePickerResultEvent):
         selected_files.value = (
@@ -173,9 +173,13 @@ def main(page: ft.Page):
         )
         selected_files.update()
         try:
+            if e.files[0].name.split('.')[-1] not in ['csv', 'txt']:
+                raise TypeError
             loaded_df.data = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price', errors='ignore')
             success_info.value = None
-        except:
+            save_button.disabled = False
+        except TypeError:
+            save_button.disabled = True
             success_info.value = f'Неверный формат данных'
         finally:
             page.update()
@@ -195,12 +199,11 @@ def main(page: ft.Page):
         except:
             success_info.value = f'Неверный формат данных'
         finally:
+            save_button.disabled = True
             selected_files.value = None
             save_file_path.value = None
             page.update()
             
-            
-
     save_file_dialog = ft.FilePicker(on_result=save_file_result)
     save_file_path = ft.Text()
     predictions = MutableObject()
@@ -209,28 +212,37 @@ def main(page: ft.Page):
     # hide all dialogs in overlay
     page.overlay.extend([pick_files_dialog, save_file_dialog])
 
+    def hint_click(e):
+        hint_image.visible = not hint_image.visible
+        page.update()
+
+    hint_button = ft.OutlinedButton(text='Пример датасета', on_click=hint_click)
+    hint_image = ft.Image(src='img/example.png', visible=False)
+    
+    upload_button = ft.ElevatedButton(
+        "Загрузить файл",
+        icon=ft.icons.UPLOAD_FILE,
+        on_click=lambda _: pick_files_dialog.pick_files(),
+    )
+    
+    save_button = ft.ElevatedButton(
+        "Сохранить предсказания",
+        icon=ft.icons.SAVE,
+        on_click=lambda _: save_file_dialog.save_file(file_name='predictions.csv'),
+        disabled=True,
+    )
+    
     page.add(
-        ft.Row(
-            [
-                ft.ElevatedButton(
-                    "Загрузить файл",
-                    icon=ft.icons.UPLOAD_FILE,
-                    on_click=lambda _: pick_files_dialog.pick_files(),
-                ),
-                selected_files,
-            ]
-        ),
-        ft.Row(
-            [
-                ft.ElevatedButton(
-                    "Сохранить предсказания",
-                    icon=ft.icons.SAVE,
-                    on_click=lambda _: save_file_dialog.save_file(file_name='predictions.csv'),
-                    disabled=page.web,
-                ),
-                save_file_path,
-            ]
-        ),
+        hint_button,
+        hint_image,
+        ft.Row([
+            upload_button,
+            selected_files
+        ]),
+        ft.Row([
+            save_button,
+            save_file_path
+        ]),
         success_info
     )
     
