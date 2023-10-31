@@ -175,13 +175,16 @@ def main(page: ft.Page):
         try:
             if e.files[0].name.split('.')[-1] not in ['csv', 'txt']:
                 raise TypeError
-            loaded_df.data = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price', errors='ignore')
-            success_info.value = None
-            save_button.disabled = False
+            else:
+                loaded_df.data = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price', errors='ignore')
+                success_info.value = None
+                save_button.disabled = False
         except TypeError:
             save_button.disabled = True
             success_info.value = f'Неверный формат данных'
         finally:
+            if selected_files.value == 'Отменено':
+                success_info.value = None
             page.update()
 
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
