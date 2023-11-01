@@ -2,17 +2,13 @@ import flet as ft
 import pickle
 import pandas as pd
 
-# Класс, в атрибуте которого будем хранить изменяемые данные:
-# загруженный из файла датасет и полученные предсказания
-class MutableObject():
-    def __init__(self) -> None:
-        self.data = None
-# Загружаем обученную нейросеть в файл
+# Десериализация обученной нейросети
 with open(r'models\nn_regressor.pkl', 'rb') as nn_file:
     neural_network_regressor = pickle.load(nn_file)
+    
 # Основное тело программы
 def main(page: ft.Page):
-    # Глобальные праметры окна
+    # Глобальные параметры окна
     page.title = 'Предсказание цены алмазов на основе признаков'
     page.window_height = 1000
     page.window_width = 600
@@ -20,53 +16,33 @@ def main(page: ft.Page):
     
     # Функция для кнопки Submit. Получение предсказания для одного алмаза
     def btn_click(e):
-        
         # Вспомогательная функция для валидации введенных данных
         def is_positive_number(string:str):
             try:
                 return float(string) > 0
             except:
                 return False
-            
-        # Валидация выбранных категорий и/или введенных данных
-        def validation():
-            numeric_columns = [txt_carat, txt_depth, txt_table]
-            categorical_columns = [txt_cut, txt_color, txt_clarity]
-            for numeric_col, cat_col in zip(numeric_columns, categorical_columns):
-                if numeric_col.value and is_positive_number(numeric_col.value):
-                    numeric_col.error_text = ''
-                    page.update()
-                    check_numeric = True
-                else:
-                    numeric_col.error_text = 'Нужно ввести положительное число'
-                    page.update()
-                    check_numeric = False 
-                
-                if cat_col.value == None:
-                    cat_col.error_text = 'Нужно выбрать категорию'
-                    page.update()
-                    check_categorical = False
-                else:
-                    cat_col.error_text = ''
-                    page.update()
-                    check_categorical = True 
-            return check_numeric and check_categorical
-        # Делаем предсказание только при условии, что все поля прошли валидацию        
-        if validation():
+        # Валидация поля         
+        if is_positive_number(txt_carat.value):
+            txt_carat.error_text = ''
             request_df = pd.DataFrame({
                 'carat': [float(txt_carat.value)], 
                 'cut': [txt_cut.value], 
                 'color': [txt_color.value], 
                 'clarity': [txt_clarity.value], 
-                'depth': [float(txt_depth.value)], 
-                'table': [float(txt_table.value)], 
+                'depth': [float(slider_depth.value)], 
+                'table': [float(slider_table.value)], 
                 'x': [0],
                 'y': [0], 
                 'z': [0]
             })
             prediction = neural_network_regressor.predict(request_df)[0]
             output.value = f'Предсказанная цена: {prediction:.2f} $'
-            page.update()
+            
+        else:
+            txt_carat.error_text = 'Нужно ввести положительное число'
+        page.update()
+            
     
     # Конвертация файла датасета в pandas.DataFrame
     def pick_files_result(e: ft.FilePickerResultEvent):
@@ -78,7 +54,8 @@ def main(page: ft.Page):
             if e.files[0].name.split('.')[-1] not in ['csv', 'txt']:
                 raise TypeError
             else:
-                loaded_df.data = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price', errors='ignore')
+                global loaded_df
+                loaded_df = pd.read_csv(e.files[0].path, index_col=0).drop(columns='price', errors='ignore')
                 success_info.value = None
                 save_button.disabled = False
         except TypeError:
@@ -94,8 +71,9 @@ def main(page: ft.Page):
         save_file_path.value = e.path if e.path else "Отменено"
         save_file_path.update()
         try:
-            predictions.data = neural_network_regressor.predict(loaded_df.data)
-            pd.Series(predictions.data).to_csv(save_file_path.value)
+            global predictions, loaded_df
+            predictions = neural_network_regressor.predict(loaded_df)
+            pd.Series(predictions).to_csv(save_file_path.value)
             success_info.value = f'Предсказания успешно сохранены'
         except:
             success_info.value = f'Неверный формат данных'
@@ -105,21 +83,27 @@ def main(page: ft.Page):
             save_file_path.value = None
             page.update()
             
-    # Показывать подсказку при клике на кнопку
+    # Отображение примера датасета при клике на кнопку
     def hint_click(e):
         hint_image.visible = not hint_image.visible
         page.update()
-        
+    
+    # Загруженный датафрейм из файла
+    loaded_df = None
+    # Объект с предсказаниями
+    predictions = None
+    
     # Поле для признака веса
     txt_carat = ft.TextField(
         label='Вес алмаза (карат)',
-        width=400, 
+        width=600, 
         border='underline',
-        border_color=ft.colors.PINK_400
+        border_color=ft.colors.PINK_400,
+        icon=ft.icons.NUMBERS
     )
-    # Поле для признака огранки
+    # Выбор категории огранки
     txt_cut = ft.Dropdown(
-        width=400,
+        width=600,
         label='Качество огранки алмаза',
         hint_text='Выбрать качество огранки',
         border='underline',
@@ -131,11 +115,13 @@ def main(page: ft.Page):
             ft.dropdown.Option('Very Good'),
             ft.dropdown.Option('Premium'),
             ft.dropdown.Option('Ideal')
-        ]
+        ],
+        value='Fair',
+        icon=ft.icons.CATEGORY_OUTLINED
     )
-    # Поле для признака цвета
+    # Выбор категории цвета
     txt_color = ft.Dropdown(
-        width=400,
+        width=600,
         label='Цвет алмаза',
         hint_text='Выбрать цвет',
         border='underline',
@@ -149,11 +135,13 @@ def main(page: ft.Page):
             ft.dropdown.Option('F'),
             ft.dropdown.Option('E'),
             ft.dropdown.Option('D')
-        ]
+        ],
+        value='J',
+        icon=ft.icons.CATEGORY_OUTLINED
     )
-    # Поле для признака чистоты
+    # Выбор категории чистоты
     txt_clarity = ft.Dropdown(
-        width=400,
+        width=600,
         label='Уровень чистоты алмаза',
         hint_text='Выбрать уровень чистоты',
         border='underline',
@@ -168,22 +156,31 @@ def main(page: ft.Page):
             ft.dropdown.Option('VVS2'),
             ft.dropdown.Option('VVS1'),
             ft.dropdown.Option('IF')
-        ]
+        ],
+        value='I1',
+        icon=ft.icons.CATEGORY_OUTLINED
     )
-    # Поле для признака глубины
-    txt_depth = ft.TextField(
-        label='Общий процент глубины алмаза', 
-        width=400,
-        border='underline',
-        border_color=ft.colors.PINK_400
+    # Слайдер для признака глубины
+    depth_text = ft.Row([ft.Icon(ft.icons.NUMBERS, color=ft.colors.GREY_400), ft.Text('Общий процент глубины алмаза')])
+    slider_depth = ft.Slider(
+        min=50,
+        max=70,
+        divisions=20,
+        label='{value}%',
+        active_color=ft.colors.PINK_400,
+        value=50
     )
-    # Поле для признака ширины
-    txt_table = ft.TextField(
-        label='Ширина верхней грани алмаза',
-        width=400,
-        border='underline',
-        border_color=ft.colors.PINK_400
+    # Слайдер для признака ширины
+    table_text = ft.Row([ft.Icon(ft.icons.NUMBERS, color=ft.colors.GREY_400), ft.Text('Общий процент ширины верхней грани алмаза')])
+    slider_table = ft.Slider(
+        min=50,
+        max=70,
+        divisions=20,
+        label='{value}%',
+        active_color=ft.colors.PINK_400,
+        value=50
     )
+    
     # Полученное предсказание
     output = ft.Text(
         value='',
@@ -217,14 +214,10 @@ def main(page: ft.Page):
     pick_files_dialog = ft.FilePicker(on_result=pick_files_result)
     # Имена выбранных файлов
     selected_files = ft.Text()
-    # Загруженный датафрейм из файла (будет храниться в атрибуте data)
-    loaded_df = MutableObject()
     # Диалог выбора файла для сохранения предсказаний
     save_file_dialog = ft.FilePicker(on_result=save_file_result)
     # Путь сохраняемого файла
     save_file_path = ft.Text()
-    # Объект pandas.Series с предсказаниями (будет храниться в атрибуте data)
-    predictions = MutableObject()
     # Информация об операции с файлами
     success_info = ft.Text()
     # Добавляем оба диалога выбора файлов в оверлей
@@ -234,8 +227,10 @@ def main(page: ft.Page):
         ft.Column(
             controls=[
                 txt_carat,
-                txt_depth,
-                txt_table,
+                depth_text,
+                slider_depth,
+                table_text,
+                slider_table,
                 txt_cut, 
                 txt_color, 
                 txt_clarity,
