@@ -196,7 +196,7 @@ def main(page: ft.Page):
     
     # Спойлер с изображением примера датасета
     hint_button = ft.OutlinedButton(text='Пример датасета', on_click=hint_click)
-    hint_image = ft.Image(src='img/example.png', visible=False)
+    hint_image = ft.Image(src=r'img\example.png', visible=False)
     
     # Кнопки загрузки/сохранения файла
     upload_button = ft.ElevatedButton(
@@ -246,4 +246,4 @@ def main(page: ft.Page):
     )
 
 if __name__ == '__main__':
-    ft.app(target=main)
+    ft.app(target=main, view=ft.FLET_APP)

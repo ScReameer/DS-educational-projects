@@ -18,5 +18,5 @@ if not exist venv (
 )
 echo.
 echo Starting...
-python main.py
+python src\main.py
 
