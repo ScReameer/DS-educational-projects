@@ -132,4 +132,6 @@ dmypy.json
 *.csv
 *.zip
 data/
+
 unused.ipynb
+/OpenSourceProjects/
