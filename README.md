@@ -7,3 +7,4 @@
 4. [Анализ *HeadHunter*, ч.1](./Educational%20projects/HH%20Analyzing%201/)
 5. [Анализ *HeadHunter*, ч.2](./Educational%20projects/HH%20Analyzing%202/)
 6. [Сегментация клиентов интернет-магазина](./Educational%20projects/Segmenting%20customers/)
+7. [Исследование данных HR-агенства](https://github.com/ScReameer/DS-learning/blob/main/Block-3.%20EDA/hw/final_homework.ipynb)
